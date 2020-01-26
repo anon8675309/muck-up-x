@@ -7,5 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-glium = "*"
 x11 = { version = "*", features = ["xlib"] }
+# https://stackoverflow.com/questions/58480205/how-do-you-enable-a-rust-crate-feature
+# https://stackoverflow.com/questions/47001895/why-does-calling-xchangeproperty-from-rust-and-glium-generate-a-segfault
