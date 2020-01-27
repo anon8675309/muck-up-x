@@ -21,14 +21,29 @@ fn main() {
         let screen = x11::xlib::XDefaultScreen(display);
         let root = x11::xlib::XRootWindow(display, screen);
 
-        // What the HECK is going on with these types?  Does anyone understand
-        // data types and pointers and pointers to pointers in Rust?
+        // The type of parent is infered from the return value of the right hand operand
         let mut parent = root.clone(); //x11::xlib::XRootWindow(display, screen);
+        // The type of children is a mutable raw pointer (*mut) to the parent.
+        // The value which is being assigned to it is the address of parent.
         let mut children: *mut u64 = &mut parent;
         let mut nchildren: u32 = 0;
+
         // Get list of windows
         // https://tronche.com/gui/x/xlib/window-information/XQueryTree.html
         let mut status = x11::xlib::XQueryTree(display, root, &mut parent as *mut u64, &mut parent as *mut u64, &mut children as *mut _, &mut nchildren);
+        // The above line of code has a lot going on.
+        // The "&mut parent as *mut u64" is passing in a pointer to parent.
+        // The "&mut parent" gets a mutable reference to a parent, then the
+        // "as *mut u64" casts it into a mutable raw pointer... of size u64...
+        // I think...  Does that mean this code won't work on an i386 system?
+        //
+        // Similarly, a pointer to children is being created here in the
+        // same way, but since children is a pointer itself, that gets us the
+        // pointer to a pointer that XQueryTree wants.  Whew!  Specifying
+        // an underscore instead of a u64 seems to be required when casting
+        // to a pointer to a pointer, although the Rust documentation doesn't
+        // seem to have any details about what the size after a pointer is,
+        // it just gives examples without any explanation :-(
 
         println!("XQueryTree returned {}", status);
         println!("root = {}", root);
@@ -53,11 +68,14 @@ fn main() {
             // https://stackoverflow.com/questions/58158069/how-do-i-create-uninitialized-pointers-that-i-can-pass-to-ffi-functions-in-a-thr
             let mut name: *mut i8 = std::ptr::null_mut();
             let nameptr: *mut *mut i8 = &mut name;
+            // https://tronche.com/gui/x/xlib/ICC/client-to-window-manager/XFetchName.html
             status = x11::xlib::XFetchName(display, w, nameptr);
             //println!("XFetchName[{}] returned {}", i, status);
             if status != 0 {
                 println!("Window {} name = {}", i, std::ffi::CString::from_raw(name).into_string().expect(""));
             }
+
+            // https://tronche.com/gui/x/xlib/window-information/XGetWindowProperty.html
             //status = x11::xlib::XGetWindowProperty(display, w, property, long_offset, long_length, delete, req_type,
             //            actual_type_return, actual_format_return, nitems_return, bytes_after_return,
             //            prop_return)
